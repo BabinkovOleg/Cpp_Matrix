@@ -1,9 +1,18 @@
 #include <iostream>
+#include <fstream>
+#include <string>
 #include <time.h>
 #include <algorithm>
 
-#define RAND_LIMIT 10
+#define RAND_LIMIT 15
 #define EPSILON 0.0000001f
+#define NUM_OF_MATRIX 10
+#define NUM_OF_ROWS 5
+#define NUM_OF_COLS 5
+
+#define INPUT_FILE_NAME "input.txt"
+#define OUTPUT_FILE_NAME "output.txt"
+
 #define ERR_ALLOC "Allocation failed"
 #define ERR_OPERATOR "Invalid matrix dimensions"
 #define ERR_COORDINATES "Invalid element coordinates"
@@ -48,6 +57,19 @@ public:
 		}
 	}
 
+	void input(std::string fileName) {
+		std::ifstream fin;
+		fin.open(fileName, std::ios::in);
+		fin >> this->rows >> this->columns;
+		this->MatrixAlloc();
+		for (int i = 0; i < this->rows; ++i) {
+			for (int j = 0; j < this->columns; ++j) {
+				fin >> this->elements[i][j];
+			}
+		}
+		fin.close();
+	}
+
 	void generateRandom(int _rows, int _columns) {
 		this->rows = _rows;
 		this->columns = _columns;
@@ -70,6 +92,21 @@ public:
 		std::cout << std::endl;
 	}
 	
+	void output(std::string fileName) {
+		std::ofstream fout;
+		fout.open(fileName, std::ios::app);
+
+		for (int i = 0; i < this->rows; ++i) {
+			for (int j = 0; j < this->columns; ++j) {
+				fout << this->elements[i][j] << "\t";
+			}
+			fout << std::endl;
+		}
+		fout << std::endl;
+
+		fout.close();
+	}
+
 	void plus(Matrix m1, Matrix m2) {
 		if (m1.rows != m2.rows || m1.columns != m2.columns) {
 			std::cout << ERR_OPERATOR << std::endl;
@@ -240,26 +277,6 @@ public:
 		return m.determinant();
 	}
 
-	void invert(Matrix m) {
-		if (m.rows != m.columns) {
-			std::cout << ERR_OPERATOR << std::endl;
-			exit(2);
-		}
-		if (abs(m.determinant() - 0.0f) < EPSILON) {
-			std::cout << ERR_DIV_BY_NULL << std::endl;
-			exit(4);
-		}
-
-		this->rows = m.rows;
-		this->columns = m.columns;
-		this->MatrixAlloc();
-
-		Matrix tmp;
-		tmp.adjugate(m);
-		tmp.transpose(tmp);
-		this->multiplication(1 / m.determinant(), tmp);
-	}
-
 	float cofactor(int i, int j) {
 		return ((i + j) % 2 == 0 ? 1 : -1) * this->minor(i, j);
 	}
@@ -280,15 +297,51 @@ public:
 			}
 		}
 	}
+
+	void invert(Matrix m) {
+		if (m.rows != m.columns) {
+			std::cout << ERR_OPERATOR << std::endl;
+			exit(2);
+		}
+		if (abs(m.determinant() - 0.0f) < EPSILON) {
+			std::cout << ERR_DIV_BY_NULL << std::endl;
+			exit(4);
+		}
+
+		this->rows = m.rows;
+		this->columns = m.columns;
+		this->MatrixAlloc();
+
+		Matrix tmp;
+		tmp.adjugate(m);
+		tmp.transpose(tmp);
+		this->multiplication(1 / m.determinant(), tmp);
+	}
 };
 
 int main() {
 	srand(time(NULL));
-	Matrix m, mInverted;
-	m.generateRandom(3, 3);
-	m.output();
-	mInverted.invert(m);
 
-	mInverted.output();
+	Matrix* m = new Matrix[NUM_OF_MATRIX];
+	for (int i = 0; i < NUM_OF_MATRIX; ++i) {
+		m[i].generateRandom(NUM_OF_ROWS, NUM_OF_COLS);
+	}
+
+	for (int i = 0; i < NUM_OF_MATRIX; ++i) {
+		m[i].output(OUTPUT_FILE_NAME);
+		std::cout << "Original matrix: " << std::endl;
+		m[i].output();
+		std::cout << "Determinant: " << m[i].determinant() << std::endl << std::endl;
+		std::cout << "Inverted matrix: " << std::endl;
+		Matrix mInv, mTrans;
+		mInv.invert(m[i]);
+		mInv.output();
+		std::cout << "Transposed: " << std::endl;
+		mTrans.transpose(m[i]);
+		mTrans.output();
+		std::cout << std::endl;
+	}
+
+	delete[] m;
 	return 0;
 }
